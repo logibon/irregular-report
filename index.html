@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ロジボンサービス株式会社 イレギュラー報告フォーム</title>
-<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
   :root {
     --primary: #1a56db;
@@ -156,18 +156,42 @@
   .status-msg.err { background: #fef3f2; color: var(--danger); border: 1px solid #fecdca; }
   .status-msg.loading { background: #eff4ff; color: var(--primary); border: 1px solid #c7d7fe; }
 
-  /* ---- スキャナーモーダル ---- */
+  /* ---- OCRモーダル ---- */
   #scanner-modal {
     display: none;
-    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    position: fixed; inset: 0; background: rgba(0,0,0,0.9);
     z-index: 100; align-items: center; justify-content: center; flex-direction: column;
+    padding: 16px;
   }
-  #scanner-view { width: 90vw; max-width: 380px; background: #000; border-radius: 12px; overflow: hidden; }
+  #scanner-video-wrap {
+    width: 90vw; max-width: 380px; background: #000; border-radius: 12px;
+    overflow: hidden; position: relative;
+  }
+  #scanner-video { width: 100%; display: block; }
+  .scanner-hint { color: white; margin-top: 12px; font-size: 0.85rem; text-align: center; }
+  #scanner-capture-controls, #scanner-result-controls {
+    margin-top: 16px; width: 90vw; max-width: 380px;
+    display: flex; flex-direction: column; gap: 10px; align-items: center;
+  }
+  .scanner-shutter {
+    width: 100%; padding: 14px; background: var(--primary); color: white;
+    border: none; border-radius: 24px; font-weight: 700; font-size: 1rem; cursor: pointer;
+  }
   .scanner-close {
-    margin-top: 16px; padding: 10px 24px; background: white; border: none;
+    padding: 10px 24px; background: white; border: none;
     border-radius: 20px; font-weight: 700; cursor: pointer;
   }
-  .scanner-hint { color: white; margin-top: 10px; font-size: 0.85rem; }
+  .scanner-result-label { color: white; font-size: 0.85rem; text-align: center; }
+  .scanner-result-input {
+    width: 100%; padding: 12px; border-radius: 8px; border: none; font-size: 1.05rem; text-align: center;
+  }
+  .scanner-result-btns { display: flex; gap: 10px; width: 100%; }
+  .scanner-retry, .scanner-confirm {
+    flex: 1; padding: 12px; border: none; border-radius: 20px; font-weight: 700; cursor: pointer;
+  }
+  .scanner-retry { background: #4b5563; color: white; }
+  .scanner-confirm { background: var(--success); color: white; }
+  .scanner-loading { color: white; text-align: center; font-size: 0.9rem; margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -212,7 +236,7 @@
         <label class="required">配送ID</label>
         <div class="id-input-row">
           <input type="text" id="absence-deliveryId" required placeholder="例: 20260918-001">
-          <button type="button" class="scan-btn" onclick="openScanner('absence-deliveryId')">📷 スキャン</button>
+          <button type="button" class="scan-btn" onclick="openScanner('absence-deliveryId')">🔤 OCRで読み取る</button>
         </div>
 
         <label class="required">不在表投函写真</label>
@@ -254,7 +278,7 @@
         <label class="required">配送ID</label>
         <div class="id-input-row">
           <input type="text" id="options-deliveryId" required placeholder="例: 20260918-001">
-          <button type="button" class="scan-btn" onclick="openScanner('options-deliveryId')">📷 スキャン</button>
+          <button type="button" class="scan-btn" onclick="openScanner('options-deliveryId')">🔤 OCRで読み取る</button>
         </div>
       </div>
 
@@ -311,7 +335,7 @@
         <label class="required">配送ID</label>
         <div class="id-input-row">
           <input type="text" id="parking-deliveryId" required placeholder="例: 20260918-001">
-          <button type="button" class="scan-btn" onclick="openScanner('parking-deliveryId')">📷 スキャン</button>
+          <button type="button" class="scan-btn" onclick="openScanner('parking-deliveryId')">🔤 OCRで読み取る</button>
         </div>
 
         <label class="required" for="parking-fee">使用金額</label>
@@ -331,11 +355,27 @@
 
 </main>
 
-<!-- ===== スキャナーモーダル ===== -->
+<!-- ===== OCRモーダル ===== -->
 <div id="scanner-modal">
-  <div id="scanner-view"></div>
-  <div class="scanner-hint">配送IDのバーコード/QRコードを枠内に映してください</div>
-  <button class="scanner-close" onclick="closeScanner()">閉じる</button>
+  <div id="scanner-video-wrap">
+    <video id="scanner-video" autoplay playsinline></video>
+    <canvas id="scanner-canvas" style="display:none;"></canvas>
+  </div>
+  <div class="scanner-hint" id="scanner-hint">配送IDの文字を枠内に大きく、まっすぐ映してください</div>
+
+  <div id="scanner-capture-controls">
+    <button class="scanner-shutter" id="scanner-shutter-btn" onclick="captureAndRecognize()">📸 撮影して読み取る</button>
+    <button class="scanner-close" onclick="closeScanner()">閉じる</button>
+  </div>
+
+  <div id="scanner-result-controls" style="display:none;">
+    <div class="scanner-result-label">読み取り結果（間違っていれば修正してください）</div>
+    <input type="text" id="scanner-result-input" class="scanner-result-input">
+    <div class="scanner-result-btns">
+      <button class="scanner-retry" onclick="retryCapture()">↺ 撮り直す</button>
+      <button class="scanner-confirm" onclick="confirmOcrResult()">この内容で使う</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -369,34 +409,85 @@
     document.getElementById(fieldId).value = formatted;
   }
 
-  // ---- 配送IDバーコード/QRスキャン ----
-  let html5QrCode = null;
+  // ---- 配送ID OCR読み取り ----
+  let cameraStream = null;
   let scanTargetId = null;
 
   function openScanner(targetInputId) {
     scanTargetId = targetInputId;
     document.getElementById('scanner-modal').style.display = 'flex';
-    html5QrCode = new Html5Qrcode('scanner-view');
-    html5QrCode.start(
-      { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 250, height: 150 } },
-      (decodedText) => {
-        document.getElementById(scanTargetId).value = decodedText;
+    document.getElementById('scanner-capture-controls').style.display = 'flex';
+    document.getElementById('scanner-result-controls').style.display = 'none';
+    document.getElementById('scanner-hint').textContent = '配送IDの文字を枠内に大きく、まっすぐ映してください';
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then((stream) => {
+        cameraStream = stream;
+        document.getElementById('scanner-video').srcObject = stream;
+      })
+      .catch((err) => {
+        alert('カメラを起動できませんでした。手動で入力してください。\n(' + err + ')');
         closeScanner();
-      },
-      () => { /* 読み取り中の失敗は無視 */ }
-    ).catch((err) => {
-      alert('カメラを起動できませんでした。手動で入力してください。\n(' + err + ')');
-      closeScanner();
-    });
+      });
+  }
+
+  function stopCameraStream() {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      cameraStream = null;
+    }
   }
 
   function closeScanner() {
     document.getElementById('scanner-modal').style.display = 'none';
-    if (html5QrCode) {
-      html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
-      html5QrCode = null;
+    stopCameraStream();
+  }
+
+  function retryCapture() {
+    document.getElementById('scanner-capture-controls').style.display = 'flex';
+    document.getElementById('scanner-result-controls').style.display = 'none';
+    document.getElementById('scanner-hint').textContent = '配送IDの文字を枠内に大きく、まっすぐ映してください';
+    // カメラが止まっていれば再開する
+    if (!cameraStream) {
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        .then((stream) => {
+          cameraStream = stream;
+          document.getElementById('scanner-video').srcObject = stream;
+        })
+        .catch(() => {});
     }
+  }
+
+  async function captureAndRecognize() {
+    const video = document.getElementById('scanner-video');
+    const canvas = document.getElementById('scanner-canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // 撮影後はカメラを止め、認識中の表示に切り替える
+    stopCameraStream();
+    document.getElementById('scanner-capture-controls').style.display = 'none';
+    document.getElementById('scanner-hint').textContent = '';
+    document.getElementById('scanner-result-controls').style.display = 'flex';
+    document.getElementById('scanner-result-input').value = '読み取り中…';
+
+    try {
+      const result = await Tesseract.recognize(canvas, 'eng');
+      const text = result.data.text.replace(/\s+/g, '').trim();
+      document.getElementById('scanner-result-input').value = text;
+    } catch (err) {
+      document.getElementById('scanner-result-input').value = '';
+      alert('読み取りに失敗しました。もう一度撮影するか、手動で入力してください。');
+    }
+  }
+
+  function confirmOcrResult() {
+    const value = document.getElementById('scanner-result-input').value.trim();
+    if (scanTargetId) {
+      document.getElementById(scanTargetId).value = value;
+    }
+    closeScanner();
   }
 
   // ---- 階段上げ「それ以上」入力欄の有効/無効切り替え ----
@@ -474,7 +565,7 @@
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
       });
-      showStatus(statusEl, 'ok', '送信完了しました。');
+      showStatus(statusEl, 'ok', '送信しました。内容はスプレッドシートと指定フォルダをご確認ください。');
       return true;
     } catch (err) {
       showStatus(statusEl, 'err', '送信に失敗しました。通信環境をご確認のうえ、再度お試しください。');
