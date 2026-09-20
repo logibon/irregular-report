@@ -474,7 +474,7 @@
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
       });
-      showStatus(statusEl, 'ok', '送信しました。内容はスプレッドシートと指定フォルダをご確認ください。');
+      showStatus(statusEl, 'ok', '送信完了しました。');
       return true;
     } catch (err) {
       showStatus(statusEl, 'err', '送信に失敗しました。通信環境をご確認のうえ、再度お試しください。');
