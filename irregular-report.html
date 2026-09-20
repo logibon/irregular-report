@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ロジボンサービス株式会社 イレギュラー報告フォーム</title>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  :root {
+    --primary: #1a56db;
+    --primary-dark: #12409e;
+    --bg: #f4f6fb;
+    --card-bg: #ffffff;
+    --border: #e0e4ec;
+    --text: #1f2430;
+    --text-muted: #6b7280;
+    --danger: #d92d20;
+    --success: #067647;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding-bottom: 40px;
+  }
+  header {
+    background: var(--primary);
+    color: white;
+    padding: 20px 16px 14px;
+    text-align: center;
+    position: relative;
+  }
+  header h1 { margin: 0; font-size: 1.15rem; }
+  .company-name { font-size: 0.78rem; opacity: 0.85; margin-bottom: 2px; }
+  .back-btn {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 6px 10px;
+    display: none;
+  }
+  #app-header.has-back .back-btn { display: block; }
+
+  main { max-width: 480px; margin: 0 auto; padding: 16px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ---- メニュー画面 ---- */
+  .menu-list { display: flex; flex-direction: column; gap: 14px; padding-top: 8px; }
+  .menu-tile {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 18px;
+    text-align: left;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .menu-tile .sub { display:block; font-size: 0.8rem; font-weight: 400; color: var(--text-muted); margin-top: 4px; }
+  .menu-tile .arrow { font-size: 1.3rem; color: var(--primary); }
+
+  .card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  label { display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; margin-top: 18px; }
+  label.first { margin-top: 0; }
+  .required::after { content: " *"; color: var(--danger); }
+  input[type="text"], input[type="datetime-local"] {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+  input[readonly] { background: #f1f3f8; color: var(--text-muted); }
+
+  .id-input-row { display: flex; gap: 8px; }
+  .id-input-row input { flex: 1; }
+  .scan-btn {
+    flex-shrink: 0;
+    padding: 0 14px;
+    border: 1px solid var(--primary);
+    background: white;
+    color: var(--primary);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .file-input-wrap {
+    border: 1.5px dashed var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    background: #fafbfd;
+  }
+  .file-input-wrap input[type="file"] { width: 100%; font-size: 0.85rem; }
+  .preview { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .preview img, .preview video {
+    max-width: 100px; max-height: 100px; border-radius: 8px;
+    border: 1px solid var(--border); object-fit: cover;
+  }
+  .preview .file-name { font-size: 0.75rem; color: var(--text-muted); }
+
+  .checkbox-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .checkbox-row:last-child { border-bottom: none; }
+  .checkbox-row input { width: 18px; height: 18px; }
+  .checkbox-row label { margin: 0; font-weight: 500; }
+
+  .hint { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+  .menu-back-btn {
+    display: inline-block;
+    margin-bottom: 14px;
+    padding: 8px 14px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--primary);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.submit-btn {
+    width: 100%; padding: 15px; margin-top: 22px;
+    background: var(--primary); color: white; border: none;
+    border-radius: 10px; font-size: 1.02rem; font-weight: 700; cursor: pointer;
+  }
+  button.submit-btn:active { background: var(--primary-dark); }
+  button.submit-btn:disabled { background: #a9b7d0; cursor: not-allowed; }
+
+  .status-msg { margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-size: 0.88rem; display: none; }
+  .status-msg.show { display: block; }
+  .status-msg.ok { background: #ecfdf3; color: var(--success); border: 1px solid #abefc6; }
+  .status-msg.err { background: #fef3f2; color: var(--danger); border: 1px solid #fecdca; }
+  .status-msg.loading { background: #eff4ff; color: var(--primary); border: 1px solid #c7d7fe; }
+
+  /* ---- スキャナーモーダル ---- */
+  #scanner-modal {
+    display: none;
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    z-index: 100; align-items: center; justify-content: center; flex-direction: column;
+  }
+  #scanner-view { width: 90vw; max-width: 380px; background: #000; border-radius: 12px; overflow: hidden; }
+  .scanner-close {
+    margin-top: 16px; padding: 10px 24px; background: white; border: none;
+    border-radius: 20px; font-weight: 700; cursor: pointer;
+  }
+  .scanner-hint { color: white; margin-top: 10px; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<header id="app-header">
+  <button class="back-btn" id="back-btn" onclick="goToMenu()">← 戻る</button>
+  <div class="company-name">ロジボンサービス株式会社</div>
+  <h1 id="header-title">イレギュラー報告フォーム</h1>
+</header>
+
+<main>
+
+  <!-- ===== メニュー画面 ===== -->
+  <section id="screen-menu" class="screen active">
+    <div class="menu-list">
+      <button class="menu-tile" onclick="goToScreen('absence')">
+        <span>不在連絡<span class="sub">不在表・発信履歴・インターフォン動画</span></span>
+        <span class="arrow">›</span>
+      </button>
+      <button class="menu-tile" onclick="goToScreen('options')">
+        <span>当日追加オプション<span class="sub">階段上げ・解体・開梱 など</span></span>
+        <span class="arrow">›</span>
+      </button>
+      <button class="menu-tile" onclick="goToScreen('parking')">
+        <span>パーキング使用<span class="sub">使用金額・レシート</span></span>
+        <span class="arrow">›</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ===== 不在連絡 ===== -->
+  <section id="screen-absence" class="screen">
+    <button type="button" class="menu-back-btn" onclick="goToMenu()">← 選択画面に戻る</button>
+    <form id="form-absence">
+      <div class="card">
+        <label class="first">報告日時</label>
+        <input type="text" id="absence-timestamp" readonly>
+
+        <label class="required" for="absence-companyName">配送ドライバー会社名</label>
+        <input type="text" id="absence-companyName" required placeholder="例: ○○運送">
+
+        <label class="required">配送ID</label>
+        <div class="id-input-row">
+          <input type="text" id="absence-deliveryId" required placeholder="例: 20260918-001">
+          <button type="button" class="scan-btn" onclick="openScanner('absence-deliveryId')">📷 スキャン</button>
+        </div>
+
+        <label class="required">不在表投函写真</label>
+        <div class="file-input-wrap">
+          <input type="file" id="absence-noticePhoto" accept="image/*" capture="environment" required>
+          <div class="preview" id="preview-absence-noticePhoto"></div>
+        </div>
+
+        <label class="required">電話発信履歴（スクリーンショット）</label>
+        <div class="file-input-wrap">
+          <input type="file" id="absence-callLog" accept="image/*" capture="environment" required>
+          <div class="preview" id="preview-absence-callLog"></div>
+        </div>
+
+        <label class="required">インターフォン動画</label>
+        <div class="file-input-wrap">
+          <input type="file" id="absence-interphoneVideo" accept="video/*" capture="environment" required>
+          <div class="preview" id="preview-absence-interphoneVideo"></div>
+          <div class="hint">動画が長いと送信に時間がかかります。できるだけ短く撮影してください。</div>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="btn-absence">送信する</button>
+      <div class="status-msg" id="status-absence"></div>
+    </form>
+  </section>
+
+  <!-- ===== 当日追加オプション ===== -->
+  <section id="screen-options" class="screen">
+    <button type="button" class="menu-back-btn" onclick="goToMenu()">← 選択画面に戻る</button>
+    <form id="form-options">
+      <div class="card">
+        <label class="first">報告日時</label>
+        <input type="text" id="options-timestamp" readonly>
+
+        <label class="required" for="options-companyName">配送ドライバー会社名</label>
+        <input type="text" id="options-companyName" required placeholder="例: ○○運送">
+
+        <label class="required">配送ID</label>
+        <div class="id-input-row">
+          <input type="text" id="options-deliveryId" required placeholder="例: 20260918-001">
+          <button type="button" class="scan-btn" onclick="openScanner('options-deliveryId')">📷 スキャン</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <label class="first" style="margin-bottom:2px;">追加オプション</label>
+
+        <label class="first" style="margin-top:14px; margin-bottom:6px;">階段上げ</label>
+        <div class="checkbox-row">
+          <input type="radio" name="options-stairsFloor" id="options-stairs-3" value="3階">
+          <label for="options-stairs-3">3階</label>
+        </div>
+        <div class="checkbox-row">
+          <input type="radio" name="options-stairsFloor" id="options-stairs-4" value="4階">
+          <label for="options-stairs-4">4階</label>
+        </div>
+        <div class="checkbox-row">
+          <input type="radio" name="options-stairsFloor" id="options-stairs-5" value="5階">
+          <label for="options-stairs-5">5階</label>
+        </div>
+        <div class="checkbox-row">
+          <input type="radio" name="options-stairsFloor" id="options-stairs-more" value="other">
+          <label for="options-stairs-more" style="flex-shrink:0;">それ以上</label>
+          <input type="text" id="options-stairs-more-value" placeholder="例: 6階" style="margin-left:6px;" disabled>
+        </div>
+
+        <div class="checkbox-row" style="margin-top:14px;">
+          <input type="checkbox" id="options-dismantle">
+          <label for="options-dismantle">解体</label>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="options-unpack">
+          <label for="options-unpack">開梱</label>
+        </div>
+        <label for="options-other">その他</label>
+        <input type="text" id="options-other" placeholder="該当する場合は内容を入力">
+      </div>
+
+      <button type="submit" class="submit-btn" id="btn-options">送信する</button>
+      <div class="status-msg" id="status-options"></div>
+    </form>
+  </section>
+
+  <!-- ===== パーキング使用 ===== -->
+  <section id="screen-parking" class="screen">
+    <button type="button" class="menu-back-btn" onclick="goToMenu()">← 選択画面に戻る</button>
+    <form id="form-parking">
+      <div class="card">
+        <label class="first">報告日時</label>
+        <input type="text" id="parking-timestamp" readonly>
+
+        <label class="required" for="parking-companyName">配送ドライバー会社名</label>
+        <input type="text" id="parking-companyName" required placeholder="例: ○○運送">
+
+        <label class="required">配送ID</label>
+        <div class="id-input-row">
+          <input type="text" id="parking-deliveryId" required placeholder="例: 20260918-001">
+          <button type="button" class="scan-btn" onclick="openScanner('parking-deliveryId')">📷 スキャン</button>
+        </div>
+
+        <label class="required" for="parking-fee">使用金額</label>
+        <input type="text" id="parking-fee" required placeholder="例: 500円">
+
+        <label class="required">レシート画像</label>
+        <div class="file-input-wrap">
+          <input type="file" id="parking-receipt" accept="image/*" capture="environment" required>
+          <div class="preview" id="preview-parking-receipt"></div>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="btn-parking">送信する</button>
+      <div class="status-msg" id="status-parking"></div>
+    </form>
+  </section>
+
+</main>
+
+<!-- ===== スキャナーモーダル ===== -->
+<div id="scanner-modal">
+  <div id="scanner-view"></div>
+  <div class="scanner-hint">配送IDのバーコード/QRコードを枠内に映してください</div>
+  <button class="scanner-close" onclick="closeScanner()">閉じる</button>
+</div>
+
+<script>
+  // ★★★ デプロイ後、Google Apps ScriptのWebアプリURLをここに設定してください ★★★
+  const WEBAPP_URL = 'https://script.google.com/macros/s/XXXXXXXXXXXXXXXXXXXXXXXX/exec';
+
+  const SCREEN_TITLES = {
+    menu: 'イレギュラー報告フォーム',
+    absence: '不在連絡',
+    options: '当日追加オプション',
+    parking: 'パーキング使用'
+  };
+
+  // ---- 画面遷移 ----
+  function goToScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + name).classList.add('active');
+    document.getElementById('header-title').textContent = SCREEN_TITLES[name];
+    document.getElementById('app-header').classList.toggle('has-back', name !== 'menu');
+    if (name !== 'menu') {
+      updateTimestamp(name + '-timestamp');
+    }
+  }
+  function goToMenu() { goToScreen('menu'); }
+
+  function updateTimestamp(fieldId) {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const formatted = now.getFullYear() + '/' + pad(now.getMonth() + 1) + '/' + pad(now.getDate())
+      + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+    document.getElementById(fieldId).value = formatted;
+  }
+
+  // ---- 配送IDバーコード/QRスキャン ----
+  let html5QrCode = null;
+  let scanTargetId = null;
+
+  function openScanner(targetInputId) {
+    scanTargetId = targetInputId;
+    document.getElementById('scanner-modal').style.display = 'flex';
+    html5QrCode = new Html5Qrcode('scanner-view');
+    html5QrCode.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 250, height: 150 } },
+      (decodedText) => {
+        document.getElementById(scanTargetId).value = decodedText;
+        closeScanner();
+      },
+      () => { /* 読み取り中の失敗は無視 */ }
+    ).catch((err) => {
+      alert('カメラを起動できませんでした。手動で入力してください。\n(' + err + ')');
+      closeScanner();
+    });
+  }
+
+  function closeScanner() {
+    document.getElementById('scanner-modal').style.display = 'none';
+    if (html5QrCode) {
+      html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
+      html5QrCode = null;
+    }
+  }
+
+  // ---- 階段上げ「それ以上」入力欄の有効/無効切り替え ----
+  const stairsMoreInput = document.getElementById('options-stairs-more-value');
+  document.querySelectorAll('input[name="options-stairsFloor"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const isOther = document.getElementById('options-stairs-more').checked;
+      stairsMoreInput.disabled = !isOther;
+      if (isOther) {
+        stairsMoreInput.focus();
+      } else {
+        stairsMoreInput.value = '';
+      }
+    });
+  });
+
+  // ---- ファイルプレビュー ----
+  function setupPreview(inputId, previewId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    input.addEventListener('change', () => {
+      preview.innerHTML = '';
+      const file = input.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      if (file.type.startsWith('image/')) {
+        const img = document.createElement('img');
+        img.src = url;
+        preview.appendChild(img);
+      } else if (file.type.startsWith('video/')) {
+        const video = document.createElement('video');
+        video.src = url;
+        video.controls = true;
+        preview.appendChild(video);
+      }
+      const name = document.createElement('div');
+      name.className = 'file-name';
+      name.textContent = file.name + '（' + (file.size / 1024 / 1024).toFixed(1) + 'MB）';
+      preview.appendChild(name);
+    });
+  }
+  setupPreview('absence-noticePhoto', 'preview-absence-noticePhoto');
+  setupPreview('absence-callLog', 'preview-absence-callLog');
+  setupPreview('absence-interphoneVideo', 'preview-absence-interphoneVideo');
+  setupPreview('parking-receipt', 'preview-parking-receipt');
+
+  // ---- ファイル→Base64変換 ----
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function showStatus(el, type, message) {
+    el.className = 'status-msg show ' + type;
+    el.textContent = message;
+  }
+
+  // Apps Script Web App は fetch のレスポンスをCORSの都合で読み取れないため、
+  // no-cors で送信し「送信自体が完了したこと」をもって成功とみなします。
+  async function submitPayload(payload, statusEl, btnEl) {
+    if (WEBAPP_URL.indexOf('XXXX') !== -1) {
+      showStatus(statusEl, 'err', '送信先URLが未設定です。index.html内のWEBAPP_URLを設定してください。');
+      return false;
+    }
+    btnEl.disabled = true;
+    showStatus(statusEl, 'loading', '送信中です。しばらくお待ちください…（写真・動画がある場合は時間がかかります）');
+    try {
+      await fetch(WEBAPP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      showStatus(statusEl, 'ok', '送信しました。内容はスプレッドシートと指定フォルダをご確認ください。');
+      return true;
+    } catch (err) {
+      showStatus(statusEl, 'err', '送信に失敗しました。通信環境をご確認のうえ、再度お試しください。');
+      return false;
+    } finally {
+      btnEl.disabled = false;
+    }
+  }
+
+  // ---- 不在連絡フォーム送信 ----
+  document.getElementById('form-absence').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const statusEl = document.getElementById('status-absence');
+    const btnEl = document.getElementById('btn-absence');
+
+    updateTimestamp('absence-timestamp');
+    const companyName = document.getElementById('absence-companyName').value.trim();
+    const deliveryId = document.getElementById('absence-deliveryId').value.trim();
+    const noticePhoto = document.getElementById('absence-noticePhoto').files[0];
+    const callLog = document.getElementById('absence-callLog').files[0];
+    const interphoneVideo = document.getElementById('absence-interphoneVideo').files[0];
+
+    if (!companyName || !deliveryId || !noticePhoto || !callLog || !interphoneVideo) {
+      showStatus(statusEl, 'err', '必須項目が未入力です。');
+      return;
+    }
+
+    const files = [];
+    files.push({ name: '不在表投函写真_' + noticePhoto.name, mimeType: noticePhoto.type, base64: await fileToBase64(noticePhoto) });
+    files.push({ name: '電話発信履歴_' + callLog.name, mimeType: callLog.type, base64: await fileToBase64(callLog) });
+    files.push({ name: 'インターフォン動画_' + interphoneVideo.name, mimeType: interphoneVideo.type, base64: await fileToBase64(interphoneVideo) });
+
+    const payload = {
+      formType: 'absence',
+      deliveryId: deliveryId,
+      reportedAt: document.getElementById('absence-timestamp').value,
+      data: { companyName: companyName },
+      files: files
+    };
+
+    const success = await submitPayload(payload, statusEl, btnEl);
+    if (success) {
+      document.getElementById('form-absence').reset();
+      document.querySelectorAll('#screen-absence .preview').forEach(p => p.innerHTML = '');
+    }
+  });
+
+  // ---- 当日追加オプション送信 ----
+  document.getElementById('form-options').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const statusEl = document.getElementById('status-options');
+    const btnEl = document.getElementById('btn-options');
+
+    updateTimestamp('options-timestamp');
+    const companyName = document.getElementById('options-companyName').value.trim();
+    const deliveryId = document.getElementById('options-deliveryId').value.trim();
+    const dismantle = document.getElementById('options-dismantle').checked;
+    const unpack = document.getElementById('options-unpack').checked;
+    const other = document.getElementById('options-other').value.trim();
+
+    const stairsRadio = document.querySelector('input[name="options-stairsFloor"]:checked');
+    let stairsFloor = '';
+    if (stairsRadio) {
+      if (stairsRadio.value === 'other') {
+        stairsFloor = document.getElementById('options-stairs-more-value').value.trim();
+        if (!stairsFloor) {
+          showStatus(statusEl, 'err', '階段上げ「それ以上」を選んだ場合は階数を入力してください。');
+          return;
+        }
+      } else {
+        stairsFloor = stairsRadio.value;
+      }
+    }
+
+    if (!companyName || !deliveryId) {
+      showStatus(statusEl, 'err', '必須項目が未入力です。');
+      return;
+    }
+
+    const payload = {
+      formType: 'options',
+      deliveryId: deliveryId,
+      reportedAt: document.getElementById('options-timestamp').value,
+      data: { companyName: companyName, stairsFloor: stairsFloor, dismantle: dismantle, unpack: unpack, other: other },
+      files: []
+    };
+
+    const success = await submitPayload(payload, statusEl, btnEl);
+    if (success) {
+      document.getElementById('form-options').reset();
+      stairsMoreInput.disabled = true;
+    }
+  });
+
+  // ---- パーキング使用フォーム送信 ----
+  document.getElementById('form-parking').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const statusEl = document.getElementById('status-parking');
+    const btnEl = document.getElementById('btn-parking');
+
+    updateTimestamp('parking-timestamp');
+    const companyName = document.getElementById('parking-companyName').value.trim();
+    const deliveryId = document.getElementById('parking-deliveryId').value.trim();
+    const fee = document.getElementById('parking-fee').value.trim();
+    const receipt = document.getElementById('parking-receipt').files[0];
+
+    if (!companyName || !deliveryId || !fee || !receipt) {
+      showStatus(statusEl, 'err', '必須項目が未入力です。');
+      return;
+    }
+
+    const files = [{ name: 'レシート_' + receipt.name, mimeType: receipt.type, base64: await fileToBase64(receipt) }];
+
+    const payload = {
+      formType: 'parking',
+      deliveryId: deliveryId,
+      reportedAt: document.getElementById('parking-timestamp').value,
+      data: { companyName: companyName, fee: fee },
+      files: files
+    };
+
+    const success = await submitPayload(payload, statusEl, btnEl);
+    if (success) {
+      document.getElementById('form-parking').reset();
+      document.querySelectorAll('#screen-parking .preview').forEach(p => p.innerHTML = '');
+    }
+  });
+</script>
+
+</body>
+</html>
