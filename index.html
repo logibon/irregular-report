@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ロジボンサービス株式会社 イレギュラー報告フォーム</title>
+<title>ロジボンサービス株式会社 報告フォーム</title>
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
   :root {
@@ -89,6 +89,21 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     font-size: 1rem;
+  }
+  select {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+    background: white;
+    color: var(--text);
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3e%3cpath fill='%236b7280' d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 20px;
   }
   input[readonly] { background: #f1f3f8; color: var(--text-muted); }
 
@@ -206,6 +221,17 @@
         <label class="first">報告日時</label>
         <input type="text" id="absence-timestamp" readonly>
 
+        <label class="required" for="absence-client">クライアント</label>
+        <select id="absence-client" required>
+          <option value="" disabled selected>選択してください</option>
+          <option value="koala">koala</option>
+          <option value="dinos">dinos</option>
+          <option value="CAGUUU">CAGUUU</option>
+          <option value="Zinus">Zinus</option>
+          <option value="other">その他</option>
+        </select>
+        <input type="text" id="absence-client-other" placeholder="クライアント名を入力" style="margin-top:8px;" disabled>
+
         <label class="required" for="absence-companyName">配送ドライバー会社名</label>
         <input type="text" id="absence-companyName" required placeholder="例: ○○運送">
 
@@ -256,6 +282,17 @@
       <div class="card">
         <label class="first">報告日時</label>
         <input type="text" id="options-timestamp" readonly>
+
+        <label class="required" for="options-client">クライアント</label>
+        <select id="options-client" required>
+          <option value="" disabled selected>選択してください</option>
+          <option value="koala">koala</option>
+          <option value="dinos">dinos</option>
+          <option value="CAGUUU">CAGUUU</option>
+          <option value="Zinus">Zinus</option>
+          <option value="other">その他</option>
+        </select>
+        <input type="text" id="options-client-other" placeholder="クライアント名を入力" style="margin-top:8px;" disabled>
 
         <label class="required" for="options-companyName">配送ドライバー会社名</label>
         <input type="text" id="options-companyName" required placeholder="例: ○○運送">
@@ -316,6 +353,17 @@
       <div class="card">
         <label class="first">報告日時</label>
         <input type="text" id="parking-timestamp" readonly>
+
+        <label class="required" for="parking-client">クライアント</label>
+        <select id="parking-client" required>
+          <option value="" disabled selected>選択してください</option>
+          <option value="koala">koala</option>
+          <option value="dinos">dinos</option>
+          <option value="CAGUUU">CAGUUU</option>
+          <option value="Zinus">Zinus</option>
+          <option value="other">その他</option>
+        </select>
+        <input type="text" id="parking-client-other" placeholder="クライアント名を入力" style="margin-top:8px;" disabled>
 
         <label class="required" for="parking-companyName">配送ドライバー会社名</label>
         <input type="text" id="parking-companyName" required placeholder="例: ○○運送">
@@ -414,6 +462,36 @@
     }
   }
 
+  // ---- クライアント選択「その他」入力欄の有効/無効切り替え ----
+  function setupClientOtherToggle(selectId, otherInputId) {
+    const select = document.getElementById(selectId);
+    const otherInput = document.getElementById(otherInputId);
+    select.addEventListener('change', () => {
+      const isOther = select.value === 'other';
+      otherInput.disabled = !isOther;
+      if (isOther) {
+        otherInput.focus();
+      } else {
+        otherInput.value = '';
+      }
+    });
+  }
+  setupClientOtherToggle('absence-client', 'absence-client-other');
+  setupClientOtherToggle('options-client', 'options-client-other');
+  setupClientOtherToggle('parking-client', 'parking-client-other');
+
+  // 選択されたクライアント名を取得（「その他」の場合はテキスト入力の値）。
+  // 未入力の場合は null を返す（呼び出し側でバリデーションする）
+  function getClientValue(selectId, otherInputId, statusEl) {
+    const select = document.getElementById(selectId);
+    if (!select.value) return null;
+    if (select.value === 'other') {
+      const otherValue = document.getElementById(otherInputId).value.trim();
+      return otherValue || null;
+    }
+    return select.value;
+  }
+
   // ---- 階段上げ「それ以上」入力欄の有効/無効切り替え ----
   const stairsMoreInput = document.getElementById('options-stairs-more-value');
   document.querySelectorAll('input[name="options-stairsFloor"]').forEach(radio => {
@@ -510,12 +588,13 @@
     const companyName = document.getElementById('absence-companyName').value.trim();
     const deliveryId = document.getElementById('absence-deliveryId').value.trim();
     const customerName = document.getElementById('absence-customerName').value.trim();
+    const client = getClientValue('absence-client', 'absence-client-other');
     const buildingPhoto = document.getElementById('absence-buildingPhoto').files[0];
     const noticePhoto = document.getElementById('absence-noticePhoto').files[0];
     const callLog = document.getElementById('absence-callLog').files[0];
     const interphoneVideo = document.getElementById('absence-interphoneVideo').files[0];
 
-    if (!companyName || !deliveryId || !customerName || !buildingPhoto || !noticePhoto || !callLog || !interphoneVideo) {
+    if (!companyName || !deliveryId || !customerName || !client || !buildingPhoto || !noticePhoto || !callLog || !interphoneVideo) {
       showStatus(statusEl, 'err', '必須項目が未入力です。');
       return;
     }
@@ -530,13 +609,14 @@
       formType: 'absence',
       deliveryId: deliveryId,
       reportedAt: document.getElementById('absence-timestamp').value,
-      data: { companyName: companyName, customerName: customerName },
+      data: { companyName: companyName, customerName: customerName, client: client },
       files: files
     };
 
     const success = await submitPayload(payload, statusEl, btnEl);
     if (success) {
       document.getElementById('form-absence').reset();
+      document.getElementById('absence-client-other').disabled = true;
       document.querySelectorAll('#screen-absence .preview').forEach(p => p.innerHTML = '');
     }
   });
@@ -551,6 +631,7 @@
     const companyName = document.getElementById('options-companyName').value.trim();
     const deliveryId = document.getElementById('options-deliveryId').value.trim();
     const customerName = document.getElementById('options-customerName').value.trim();
+    const client = getClientValue('options-client', 'options-client-other');
     const dismantle = document.getElementById('options-dismantle').checked;
     const unpack = document.getElementById('options-unpack').checked;
     const other = document.getElementById('options-other').value.trim();
@@ -569,7 +650,7 @@
       }
     }
 
-    if (!companyName || !deliveryId || !customerName) {
+    if (!companyName || !deliveryId || !customerName || !client) {
       showStatus(statusEl, 'err', '必須項目が未入力です。');
       return;
     }
@@ -578,13 +659,14 @@
       formType: 'options',
       deliveryId: deliveryId,
       reportedAt: document.getElementById('options-timestamp').value,
-      data: { companyName: companyName, customerName: customerName, stairsFloor: stairsFloor, dismantle: dismantle, unpack: unpack, other: other },
+      data: { companyName: companyName, customerName: customerName, client: client, stairsFloor: stairsFloor, dismantle: dismantle, unpack: unpack, other: other },
       files: []
     };
 
     const success = await submitPayload(payload, statusEl, btnEl);
     if (success) {
       document.getElementById('form-options').reset();
+      document.getElementById('options-client-other').disabled = true;
       stairsMoreInput.disabled = true;
     }
   });
@@ -599,10 +681,11 @@
     const companyName = document.getElementById('parking-companyName').value.trim();
     const deliveryId = document.getElementById('parking-deliveryId').value.trim();
     const customerName = document.getElementById('parking-customerName').value.trim();
+    const client = getClientValue('parking-client', 'parking-client-other');
     const fee = document.getElementById('parking-fee').value.trim();
     const receipt = document.getElementById('parking-receipt').files[0];
 
-    if (!companyName || !deliveryId || !customerName || !fee || !receipt) {
+    if (!companyName || !deliveryId || !customerName || !client || !fee || !receipt) {
       showStatus(statusEl, 'err', '必須項目が未入力です。');
       return;
     }
@@ -613,13 +696,14 @@
       formType: 'parking',
       deliveryId: deliveryId,
       reportedAt: document.getElementById('parking-timestamp').value,
-      data: { companyName: companyName, customerName: customerName, fee: fee },
+      data: { companyName: companyName, customerName: customerName, client: client, fee: fee },
       files: files
     };
 
     const success = await submitPayload(payload, statusEl, btnEl);
     if (success) {
       document.getElementById('form-parking').reset();
+      document.getElementById('parking-client-other').disabled = true;
       document.querySelectorAll('#screen-parking .preview').forEach(p => p.innerHTML = '');
     }
   });
